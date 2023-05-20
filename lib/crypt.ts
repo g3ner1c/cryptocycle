@@ -2,6 +2,14 @@ import * as crypto from "crypto";
 import * as fs from "fs";
 import * as readlineSync from "readline-sync";
 
+// user password (n bytes)
+// | scrypt with salt (32 + n bytes)
+// --> aes256 key used to encrypt/decrypt data (32 bytes) --> encrypted data is stored in data/data.enc (n bytes)
+// | sha256 with salt (32 + 32 bytes)                         | sha256 (n bytes)
+// --> salt + hash stored in data/key.sha256 (32 + 32 bytes)  --> checksum stored in data/data.sha256 (32 bytes)
+//     |                                                          |
+//     --> verifies password and encryption key                   --> verifies data integrity
+
 interface Key {
     salt: Buffer;
     key: Buffer;
@@ -13,12 +21,6 @@ export function sha256(data: Buffer): Buffer {
 }
 
 function pswd2key(pwsd: string, salt: Buffer = crypto.randomBytes(32)): Key {
-    // user password
-    // | scrypt with salt + pswd (32 + n bytes)
-    // --> aes256 key used to encrypt/decrypt data (32 bytes)
-    // | sha256 with salt + key (32 + 32 bytes)
-    // --> salt + hash stored in data/key.sha256 (32 + 32 bytes)
-
     const key = crypto.scryptSync(pwsd, salt, 32, { N: 2 ** 14, r: 8, p: 1 });
     const hash = sha256(Buffer.concat([salt, key]));
     return {
@@ -78,4 +80,8 @@ export function decrypt(key: Buffer, data: Buffer): Buffer {
     const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
     const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
     return decrypted;
+}
+
+export function checkIntegrity(data: Buffer, checksum: Buffer): boolean {
+    return sha256(data).equals(checksum);
 }

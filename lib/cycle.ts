@@ -153,10 +153,16 @@ export class Data {
 
     static read(key: Buffer): Data {
         const data = fs.readFileSync("data/data.enc");
-        if (!crypt.sha256(data).equals(fs.readFileSync("data/data.sha256"))) {
-            console.log("Corrupted or tampered data! Continue? (y/n)");
-            if (!readlineSync.keyInYN("")) {
-                process.exit(0);
+        if (!crypt.checkIntegrity(data, fs.readFileSync("data/data.sha256"))) {
+            switch (
+                readlineSync.question(
+                    "Data integrity check failed, possible corruption or tampering. Continue? (y/n)"
+                )
+            ) {
+                case "y":
+                    break;
+                default:
+                    process.exit(1);
             }
         }
         const decrypted = crypt.decrypt(key, data);
