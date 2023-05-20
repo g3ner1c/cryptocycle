@@ -2,11 +2,15 @@
     "name": "cryptocycle",
     "version": "0.0.1",
     "description": "private encrypted period tracking",
-    "main": "index.js",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/g3ner1c/cryptocycle.git"
+    },
     "scripts": {
         "build": "npm install && tsc"
     },
-    "author": "",
+    "author": "Sky 'g3ner1c' Hong",
+    "license": "GPL-3.0-or-later",
     "dependencies": {
         "colors": "^1.4.0",
         "commander": "^10.0.1",

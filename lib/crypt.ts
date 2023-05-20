@@ -14,7 +14,7 @@ export function sha256(data: Buffer): Buffer {
 
 function pswd2key(pwsd: string, salt: Buffer = crypto.randomBytes(32)): Key {
     // user password
-    // | scrypt from salt + pswd (32 + n bytes)
+    // | scrypt with salt + pswd (32 + n bytes)
     // --> aes256 key used to encrypt/decrypt data (32 bytes)
     // | sha256 with salt + key (32 + 32 bytes)
     // --> salt + hash stored in data/key.sha256 (32 + 32 bytes)
@@ -44,7 +44,6 @@ export function login(): Buffer | undefined {
         }
 
         var { salt, key, hash } = pswd2key(pswd);
-        console.log(salt, key, hash);
         fs.writeFileSync("data/key.sha256", Buffer.concat([salt, hash]));
     } else {
         let pswd = readlineSync.question("Enter password: ", {
