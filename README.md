@@ -10,8 +10,9 @@ All cryptography is done with Node.js' built-in `crypto` module.
 
 An AES-256 key is generated from the user's password using scrypt then hashed with SHA-256 and stored in `data/key.sha256`.
 Encrypted data is also hashed with SHA-256 into a checksum, stored in `data/data.sha256`.
-Every time the data is decrypted, the checksum is verified to ensure the data is not corrupted or tampered with.
 User passwords and encryption keys are never stored, only their hashes.
+
+Every time the data is decrypted, the checksum is verified to ensure the data is not corrupted. *However, this does not guarantee that the data has not been tampered with, as the checksum can be rehashed.*
 
 Every user login, this entire process is repeated to verify the user's password and to generate the encryption key.
 

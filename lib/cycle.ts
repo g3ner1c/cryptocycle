@@ -6,10 +6,24 @@ import * as readlineSync from "readline-sync";
 
 const colors = require("colors/safe");
 
+export enum Flow {
+    Unspecified = "u",
+    Spotting = "s",
+    Light = "l",
+    Medium = "m",
+    Heavy = "h",
+}
+
 interface DayJSON {
     date: string;
-    bleeding: boolean;
-    notes: string;
+    flow?: Flow;
+    notes?: string;
+}
+
+interface DayInterface {
+    date: DateTime;
+    flow?: Flow;
+    notes?: string;
 }
 
 interface parsedData {
@@ -18,19 +32,19 @@ interface parsedData {
     };
 }
 
-export class Day {
+export class Day implements DayInterface {
     date: DateTime;
-    bleeding: boolean;
-    notes: string;
+    flow?: Flow;
+    notes?: string;
 
-    constructor(date: DateTime = DateTime.local(), bleeding: boolean = false, notes: string = "") {
+    constructor(date: DateTime = DateTime.local(), flow?: Flow, notes?: string) {
         this.date = date;
-        this.bleeding = bleeding;
         this.notes = notes;
+        this.flow = flow;
     }
 
     toString(): string {
-        return [this.date.toISODate(), this.bleeding ? "*" : "", this.notes]
+        return [this.date.toISODate(), this.flow ? "*" : "", this.flow, this.notes]
             .filter((x) => x)
             .join(" ");
     }
@@ -43,34 +57,19 @@ export class Data {
         this.json = data;
     }
 
-    validate(): boolean {
+    validate(): void {
         if (!this.json.data.days) {
-            return true;
+            return;
         }
 
-        if (
-            !this.json.data.days.every((day) => {
-                return (
-                    day.date instanceof DateTime &&
-                    day.date.isValid &&
-                    typeof day.bleeding === "boolean" &&
-                    typeof day.notes === "string"
-                );
-            })
-        ) {
-            return false;
-        }
-
-        // remove duplicates
+        // remove duplicates, overwriting with the last one
         this.json.data.days = this.json.data.days.filter(
             (day, index, self) =>
-                self.findIndex((d) => d.date.toISODate() === day.date.toISODate()) === index
+                index === self.findLastIndex((t) => t.date.toISODate() === day.date.toISODate())
         );
 
         // sort by date
         this.json.data.days.sort((a, b) => (a.date < b.date ? -1 : 1));
-
-        return true;
     }
 
     calendar(
@@ -98,7 +97,7 @@ export class Data {
                 if (monthBounds.contains(day)) {
                     const dayData = days.find((d) => d.date.toISODate() == day.toISODate());
                     if (dayData) {
-                        dayString = dayData.bleeding
+                        dayString = dayData.flow
                             ? colors.red(day.day.toString().padEnd(2, " "))
                             : colors.green(day.day.toString().padEnd(2, " "));
                     } else {
@@ -129,8 +128,12 @@ export class Data {
 
     daysSinceMenses(): string {
         return DateTime.local()
-            .diff(this.json.data.days[this.json.data.days.length - 1].date)
+            .diff(this.flowDays().pop()?.date || DateTime.local())
             .toFormat("d");
+    }
+
+    flowDays(): Day[] {
+        return this.json.data.days.filter((day) => day.flow);
     }
 
     toString(indent: string | number | undefined = undefined): string {
@@ -143,6 +146,14 @@ export class Data {
 
     addDay(day: Day): void {
         this.json.data.days.push(day);
+    }
+
+    addRange(start: DateTime, end: DateTime, flow?: Flow, notes?: string): void {
+        const interval = Interval.fromDateTimes(start, end.plus({ days: 1 }));
+        const days = interval.splitBy({ days: 1 });
+        days.forEach((day) => {
+            this.addDay(new Day(day.start || DateTime.local(), flow, notes));
+        });
     }
 
     write(key: Buffer): void {
@@ -168,12 +179,10 @@ export class Data {
         const decrypted = crypt.decrypt(key, data);
         const rawJson = JSON.parse(decrypted.toString());
         rawJson.data.days = rawJson.data.days.map(
-            (day: DayJSON) => new Day(DateTime.fromISO(day.date), day.bleeding, day.notes)
+            (day: DayJSON) => new Day(DateTime.fromISO(day.date), day.flow, day.notes)
         );
         const parsed = new Data(rawJson);
-        if (!parsed.validate()) {
-            throw new Error("invalid data");
-        }
+        parsed.validate();
         return parsed;
     }
 }

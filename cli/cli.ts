@@ -41,23 +41,85 @@ function initParser(key: Buffer) {
         .command("add")
         .description("add a day")
         .argument("[date]", "date to add", DateTime.local().toISODate() as string)
-        .option("-b, --bleeding", "bleeding")
+        .option("-f, --flow [flow]", "flow")
         .option("-n, --notes <notes>", "notes")
         .action((date, options) => {
             const data = cycle.Data.read(key);
-            const newDay = new cycle.Day(DateTime.fromISO(date), options.bleeding, options.notes);
+            if (!Object.values(cycle.Flow).includes(options.flow) && options.flow) {
+                options.flow = cycle.Flow.Unspecified;
+            }
+            const newDay = new cycle.Day(
+                DateTime.fromISO(date),
+                options.flow as cycle.Flow,
+                options.notes
+            );
             if (!newDay.date.isValid) {
                 console.log("invalid date");
                 return;
             }
             if (data.json.data.days.find((day) => day.date.toISODate() == date)) {
-                console.log("day already exists");
-                return;
+                console.log("day already exists, overwrite? (y/n)");
+                switch (readlineSync.question()) {
+                    case "y":
+                        break;
+                    default:
+                        console.log("aborting");
+                        return;
+                }
             }
+
             data.addDay(newDay);
             data.validate();
             data.write(key);
             console.log("added entry:", newDay.toString());
+        })
+        .exitOverride();
+
+    parser
+        .command("period")
+        .description("add days of bleeding")
+        .argument("[start]", "start of period", DateTime.local().toISODate() as string)
+        .argument("[duration]", "duration of period", "1")
+        .option("-f, --flow [flow]", "flow")
+        .option("-n, --notes <notes>", "notes")
+        .action((start, duration, options) => {
+            const data = cycle.Data.read(key);
+            if (!Object.values(cycle.Flow).includes(options.flow) && options.flow) {
+                options.flow = cycle.Flow.Unspecified;
+            }
+            data.addRange(
+                DateTime.fromISO(start),
+                DateTime.fromISO(start).plus({ days: parseInt(duration) - 1 }),
+                options.flow as cycle.Flow,
+                options.notes
+            );
+            data.validate();
+            data.write(key);
+            console.log("marked range:", start, duration, " days", options.flow);
+        })
+        .exitOverride();
+
+    parser
+        .command("mark")
+        .description("mark a range of days")
+        .argument("[start]", "start of range", DateTime.local().toISODate() as string)
+        .argument("[end]", "end of range", DateTime.local().toISODate() as string)
+        .option("-f, --flow [flow]", "flow")
+        .option("-n, --notes <notes>", "notes")
+        .action((start, end, options) => {
+            const data = cycle.Data.read(key);
+            if (!Object.values(cycle.Flow).includes(options.flow) && options.flow) {
+                options.flow = cycle.Flow.Unspecified;
+            }
+            data.addRange(
+                DateTime.fromISO(start),
+                DateTime.fromISO(end),
+                options.flow as cycle.Flow,
+                options.notes
+            );
+            data.validate();
+            data.write(key);
+            console.log("marked range:", start, end, options.flow);
         })
         .exitOverride();
 
