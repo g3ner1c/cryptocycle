@@ -7,11 +7,13 @@
         "url": "https://github.com/g3ner1c/cryptocycle.git"
     },
     "scripts": {
-        "build": "npm install && tsc"
+        "build": "npm install && tsc && npm run sass",
+        "sass": "sass scss/style.scss build/css/style.css"
     },
     "author": "Sky 'g3ner1c' Hong",
     "license": "GPL-3.0-or-later",
     "dependencies": {
+        "bootstrap": "^5.2.3",
         "colors": "^1.4.0",
         "commander": "^10.0.1",
         "luxon": "^3.3.0",
@@ -20,9 +22,12 @@
     },
     "devDependencies": {
         "@trivago/prettier-plugin-sort-imports": "^4.1.1",
+        "@types/bootstrap": "^5.2.6",
         "@types/luxon": "^3.3.0",
         "@types/node": "^20.2.1",
         "@types/readline-sync": "^1.4.4",
-        "prettier": "2.8.8"
+        "i": "^0.3.7",
+        "prettier": "2.8.8",
+        "sass": "^1.62.1"
     }
 }

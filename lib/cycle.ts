@@ -1,5 +1,4 @@
 import * as crypt from "./crypt";
-import { time } from "console";
 import * as fs from "fs";
 import { DateTime, Interval } from "luxon";
 import * as readlineSync from "readline-sync";
@@ -14,7 +13,7 @@ export enum Flow {
     Heavy = "h",
 }
 
-interface DayJSON {
+export interface DayJSON {
     date: string;
     flow?: Flow;
     notes?: string;
@@ -126,7 +125,7 @@ export class Data {
         return [weekHeader, ...calendar].join("\n");
     }
 
-    daysSinceMenses(): string {
+    daysSinceEnd(): string {
         return DateTime.local()
             .diff(this.flowDays().pop()?.date || DateTime.local())
             .toFormat("d");
@@ -134,6 +133,21 @@ export class Data {
 
     flowDays(): Day[] {
         return this.json.data.days.filter((day) => day.flow);
+    }
+
+    cycles(): Day[][] {
+        const cycles: Day[][] = [];
+        let cycle: Day[] = [];
+        this.flowDays().forEach((day) => {
+            if (day.flow) {
+                cycle.push(day);
+            } else {
+                cycles.push(cycle);
+                cycle = [];
+            }
+        });
+        cycles.push(cycle);
+        return cycles;
     }
 
     toString(indent: string | number | undefined = undefined): string {

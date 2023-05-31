@@ -30,7 +30,7 @@ function initParser(key: Buffer) {
                 text = options.json ? data.toString(2) : data.toList();
             }
             console.log(text);
-            console.log("\ndays since last end:", colors.green(data.daysSinceMenses()));
+            console.log("\ndays since last end:", colors.green(data.daysSinceEnd()));
             if (options.save) {
                 fs.writeFileSync(options.save, text);
             }
@@ -155,6 +155,22 @@ function initParser(key: Buffer) {
             data.write(key);
             console.log("removed entry:", day.toString());
         });
+
+    parser
+        .command("load <path>")
+        .description("load a json file and overwrite current data")
+        .action((path) => {
+            const rawJson = JSON.parse(fs.readFileSync(path).toString());
+            rawJson.data.days = rawJson.data.days.map(
+                (day: cycle.DayJSON) =>
+                    new cycle.Day(DateTime.fromISO(day.date), day.flow, day.notes)
+            );
+            const parsed = new cycle.Data(rawJson);
+            parsed.validate();
+            parsed.write(key);
+            console.log("loaded data from", path);
+        })
+        .exitOverride();
 
     parser
         .command("clear")

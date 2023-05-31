@@ -20,8 +20,8 @@ export function sha256(data: Buffer): Buffer {
     return crypto.createHash("sha256").update(data).digest();
 }
 
-function pswd2key(pwsd: string, salt: Buffer = crypto.randomBytes(32)): Key {
-    const key = crypto.scryptSync(pwsd, salt, 32, { N: 2 ** 14, r: 8, p: 1 });
+function pswd2key(pswd: string, salt: Buffer = crypto.randomBytes(32)): Key {
+    const key = crypto.scryptSync(pswd, salt, 32, { N: 2 ** 14, r: 8, p: 1 });
     const hash = sha256(Buffer.concat([salt, key]));
     return {
         salt: salt,
